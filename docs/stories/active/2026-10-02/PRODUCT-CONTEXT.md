@@ -2,7 +2,7 @@
 
 ## Provenance and authority
 
-- **Source idea:** `../idea.md` defines Tracks and requirements, multiple enrollments, a four-state Kanban, text/link evidence, temporary UUID mentoring invitations, mentor review notifications, acceptance/rejection, and retained review iterations.
+- **Source idea:** `../../../plans/idea.md` defines Tracks and requirements, multiple enrollments, a four-state Kanban, text/link evidence, temporary UUID mentoring invitations, mentor review notifications, acceptance/rejection, and retained review iterations.
 - **Confirmed discovery decisions:** the rules below were selected by the user during the interview. They clarify and extend the source idea.
 - **Assumptions and open questions:** explicitly labeled below; they are not requirements.
 - **Status:** first high-level story draft. Stories are essential MVP candidates selected during discovery, not implementation specifications.

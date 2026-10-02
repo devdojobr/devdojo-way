@@ -1,6 +1,6 @@
 # Career Path Mentor System — Story refinement pack
 
-These 25 high-level stories were drafted from `../idea.md` and confirmed product-discovery decisions. Each story is stored separately for individual refinement. No implementation or detailed acceptance criteria have been produced.
+These 25 high-level stories were drafted from `../../../plans/idea.md` and confirmed product-discovery decisions. Each story is stored separately for individual refinement. No implementation or detailed acceptance criteria have been produced.
 
 ## How to refine one story
 
@@ -52,4 +52,4 @@ Suggested handoff prompt:
 3. ACCOUNT-02 and SUPPORT-01, alongside approval-correction policy: resolve trust-sensitive launch questions.
 4. TRACK-02 and LEARN-04: verify preserved versions, retirement, and resumed progress.
 
-Refinement should not overwrite `../idea.md`. If a new decision changes multiple stories, explicitly identify every affected ID and update shared context as well as the affected files when authorized.
+Refinement should not overwrite `../../../plans/idea.md`. If a new decision changes multiple stories, explicitly identify every affected ID and update shared context as well as the affected files when authorized.
