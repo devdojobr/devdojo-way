@@ -1,0 +1,17 @@
+# Auto-fix recipes. Run: ./mvnw rewrite:run && ./mvnw spotless:apply
+# Not a build gate: the gates are the other tools. Review the diff after running.
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: academy.devdojo.Guardrails
+displayName: devdojo-way guardrail auto-fixes
+description: Fixes common violations reported by Checkstyle, PMD, SpotBugs, Error Prone and NullAway.
+recipeList:
+  - org.openrewrite.java.RemoveUnusedImports
+  - org.openrewrite.staticanalysis.CommonStaticAnalysis
+  - org.openrewrite.staticanalysis.RemoveUnusedLocalVariables
+  - org.openrewrite.staticanalysis.RemoveUnusedPrivateFields
+  - org.openrewrite.staticanalysis.RemoveUnusedPrivateMethods
+  - org.openrewrite.java.spring.NoAutowiredOnConstructor
+  - org.openrewrite.java.jspecify.JSpecifyBestPractices
+  - org.openrewrite.java.testing.junit5.JUnit5BestPractices
+  - org.openrewrite.java.testing.assertj.Assertj

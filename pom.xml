@@ -26,10 +26,69 @@
 		<tag/>
 		<url/>
 	</scm>
+	<!--
+		Guardrails: see docs/guardrails.md. Rule files live in config/.
+		Every gate below hard-codes its skip/fail parameters so that command-line
+		properties such as -Dcheckstyle.skip or -DskipTests cannot switch it off.
+	-->
 	<properties>
 		<java.version>25</java.version>
+		<required.maven.version>3.10.0</required.maven.version>
+		<guardrails.config>${project.basedir}/config</guardrails.config>
+
+		<spring-modulith.version>2.1.1</spring-modulith.version>
+		<archunit.version>1.5.1</archunit.version>
+
+		<maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
+		<maven-dependency-plugin.version>3.11.0</maven-dependency-plugin.version>
+		<build-helper-maven-plugin.version>3.6.2</build-helper-maven-plugin.version>
+		<error-prone.version>2.50.0</error-prone.version>
+		<nullaway.version>0.14.2</nullaway.version>
+		<spotless-maven-plugin.version>3.10.3</spotless-maven-plugin.version>
+		<palantir-java-format.version>2.102.0</palantir-java-format.version>
+		<maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
+		<checkstyle.version>14.3.0</checkstyle.version>
+		<maven-pmd-plugin.version>3.28.0</maven-pmd-plugin.version>
+		<pmd.version>7.28.0</pmd.version>
+		<spotbugs-maven-plugin.version>4.10.4.1</spotbugs-maven-plugin.version>
+		<spotbugs.version>4.10.4</spotbugs.version>
+		<findsecbugs.version>1.14.0</findsecbugs.version>
+		<extra-enforcer-rules.version>1.12.1</extra-enforcer-rules.version>
+		<jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
+		<pitest-maven.version>1.30.0</pitest-maven.version>
+		<pitest-junit5-plugin.version>1.2.3</pitest-junit5-plugin.version>
+		<rewrite-maven-plugin.version>6.46.1</rewrite-maven-plugin.version>
+		<!-- Latest recipe modules published on Maven Central (rewrite-recipe-bom 3.38.0 references unpublished ones). -->
+		<rewrite-static-analysis.version>2.41.1</rewrite-static-analysis.version>
+		<rewrite-spring.version>6.37.1</rewrite-spring.version>
+		<rewrite-migrate-java.version>3.42.1</rewrite-migrate-java.version>
+		<rewrite-testing-frameworks.version>3.44.0</rewrite-testing-frameworks.version>
+
+		<!-- Thresholds -->
+		<coverage.line.minimum>0.80</coverage.line.minimum>
+		<mutation.threshold>70</mutation.threshold>
+		<cpd.minimum.tokens>100</cpd.minimum.tokens>
 	</properties>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.modulith</groupId>
+				<artifactId>spring-modulith-bom</artifactId>
+				<version>${spring-modulith.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>com.tngtech.archunit</groupId>
+				<artifactId>archunit</artifactId>
+				<version>${archunit.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 	<dependencies>
+		<!-- Starters: bring the runtime; no code imports them directly. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
@@ -51,13 +110,87 @@
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-mysql</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>3.1.0</version>
+		</dependency>
+
+		<!--
+			Platform artifacts that slices import directly. Declared upfront so that
+			dependency:analyze does not force a pom.xml change (which check-scope.sh forbids).
+			Listed in ignoredUnusedDeclaredDependencies below.
+		-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-autoconfigure</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-context</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-beans</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-webmvc</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-tx</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.data</groupId>
+			<artifactId>spring-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.data</groupId>
+			<artifactId>spring-data-commons</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>jakarta.persistence</groupId>
+			<artifactId>jakarta.persistence-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-config</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.modulith</groupId>
+			<artifactId>spring-modulith-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.jspecify</groupId>
+			<artifactId>jspecify</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>tools.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
 		</dependency>
 
 		<dependency>
@@ -67,15 +200,17 @@
 			<optional>true</optional>
 		</dependency>
 		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-mysql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
 			<groupId>com.mysql</groupId>
 			<artifactId>mysql-connector-j</artifactId>
 			<scope>runtime</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<optional>true</optional>
-		</dependency>
+
+		<!-- Test starters -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator-test</artifactId>
@@ -116,6 +251,68 @@
 			<artifactId>testcontainers-mysql</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- Test platform artifacts that tests import directly (see note above). -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-data-jpa-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.modulith</groupId>
+			<artifactId>spring-modulith-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.modulith</groupId>
+			<artifactId>spring-modulith-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.tngtech.archunit</groupId>
+			<artifactId>archunit</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -124,9 +321,91 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
+			<!-- Required Java/Maven versions, dependency convergence, duplicate classes. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<dependencies>
+					<dependency>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>extra-enforcer-rules</artifactId>
+						<version>${extra-enforcer-rules.version}</version>
+					</dependency>
+				</dependencies>
+				<executions>
+					<execution>
+						<id>enforce-guardrails</id>
+						<goals>
+							<goal>enforce</goal>
+						</goals>
+						<configuration>
+							<skip>false</skip>
+							<fail>true</fail>
+							<rules>
+								<requireJavaVersion>
+									<version>[${java.version},)</version>
+								</requireJavaVersion>
+								<requireMavenVersion>
+									<version>[${required.maven.version},)</version>
+									<message>Use ./mvnw (Maven ${required.maven.version}+).</message>
+								</requireMavenVersion>
+								<dependencyConvergence/>
+								<banDuplicateClasses>
+									<findAllDuplicates>true</findAllDuplicates>
+								</banDuplicateClasses>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Formatting. Auto-fix: ./mvnw spotless:apply -->
+			<plugin>
+				<groupId>com.diffplug.spotless</groupId>
+				<artifactId>spotless-maven-plugin</artifactId>
+				<version>${spotless-maven-plugin.version}</version>
+				<configuration>
+					<skip>false</skip>
+					<checkSkip>false</checkSkip>
+					<java>
+						<includes>
+							<include>src/main/java/**/*.java</include>
+							<include>src/test/java/**/*.java</include>
+							<include>config/archunit/**/*.java</include>
+						</includes>
+						<palantirJavaFormat>
+							<version>${palantir-java-format.version}</version>
+							<style>PALANTIR</style>
+							<formatJavadoc>true</formatJavadoc>
+						</palantirJavaFormat>
+						<removeUnusedImports/>
+						<forbidWildcardImports/>
+						<forbidModuleImports/>
+						<trimTrailingWhitespace/>
+						<endWithNewline/>
+					</java>
+				</configuration>
+				<executions>
+					<execution>
+						<id>spotless-check</id>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- -Xlint:all -Werror, Error Prone and NullAway (main code only). -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<release>${java.version}</release>
+					<showWarnings>true</showWarnings>
+					<failOnWarning>true</failOnWarning>
+					<failOnError>true</failOnError>
+				</configuration>
 				<executions>
 					<execution>
 						<id>default-compile</id>
@@ -135,14 +414,24 @@
 							<goal>compile</goal>
 						</goals>
 						<configuration>
+							<skipMain>false</skipMain>
+							<compilerArgs>
+								<arg>-Xlint:all</arg>
+								<arg>-Werror</arg>
+								<arg>-XDcompilePolicy=simple</arg>
+								<arg>--should-stop=ifError=FLOW</arg>
+								<arg>-Xplugin:ErrorProne -Xep:NullAway:ERROR -XepOpt:NullAway:AnnotatedPackages=academy.devdojo -XepOpt:NullAway:JSpecifyMode=true</arg>
+							</compilerArgs>
 							<annotationProcessorPaths>
 								<path>
-									<groupId>org.projectlombok</groupId>
-									<artifactId>lombok</artifactId>
+									<groupId>com.google.errorprone</groupId>
+									<artifactId>error_prone_core</artifactId>
+									<version>${error-prone.version}</version>
 								</path>
 								<path>
-									<groupId>org.springframework.boot</groupId>
-									<artifactId>spring-boot-configuration-processor</artifactId>
+									<groupId>com.uber.nullaway</groupId>
+									<artifactId>nullaway</artifactId>
+									<version>${nullaway.version}</version>
 								</path>
 							</annotationProcessorPaths>
 						</configuration>
@@ -154,17 +443,413 @@
 							<goal>testCompile</goal>
 						</goals>
 						<configuration>
+							<skip>false</skip>
+							<compilerArgs>
+								<arg>-Xlint:all</arg>
+								<arg>-Werror</arg>
+								<arg>-XDcompilePolicy=simple</arg>
+								<arg>--should-stop=ifError=FLOW</arg>
+								<arg>-Xplugin:ErrorProne</arg>
+							</compilerArgs>
 							<annotationProcessorPaths>
 								<path>
-									<groupId>org.projectlombok</groupId>
-									<artifactId>lombok</artifactId>
+									<groupId>com.google.errorprone</groupId>
+									<artifactId>error_prone_core</artifactId>
+									<version>${error-prone.version}</version>
 								</path>
 							</annotationProcessorPaths>
 						</configuration>
 					</execution>
 				</executions>
 			</plugin>
+
+			<!-- ArchUnit and Spring Modulith rules live in config/archunit. -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>${build-helper-maven-plugin.version}</version>
+				<executions>
+					<execution>
+						<id>add-architecture-rules</id>
+						<phase>generate-test-sources</phase>
+						<goals>
+							<goal>add-test-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${guardrails.config}/archunit</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<skip>false</skip>
+					<skipTests>false</skipTests>
+					<testFailureIgnore>false</testFailureIgnore>
+					<rerunFailingTestsCount>0</rerunFailingTestsCount>
+					<skipAfterFailureCount>0</skipAfterFailureCount>
+				</configuration>
+			</plugin>
+
+			<!-- Line coverage. Report: target/site/jacoco/index.html -->
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>${jacoco-maven-plugin.version}</version>
+				<configuration>
+					<skip>false</skip>
+					<excludes>
+						<exclude>academy/devdojo/DevdojoWayApplication.class</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<id>jacoco-prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>jacoco-report</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>jacoco-check</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<haltOnFailure>true</haltOnFailure>
+							<rules>
+								<rule>
+									<element>BUNDLE</element>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>${coverage.line.minimum}</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Naming, lengths, parameter count, suppression bans. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<version>${maven-checkstyle-plugin.version}</version>
+				<dependencies>
+					<dependency>
+						<groupId>com.puppycrawl.tools</groupId>
+						<artifactId>checkstyle</artifactId>
+						<version>${checkstyle.version}</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+					<skip>false</skip>
+					<consoleOutput>true</consoleOutput>
+					<failOnViolation>true</failOnViolation>
+					<failsOnError>true</failsOnError>
+					<violationSeverity>info</violationSeverity>
+					<maxAllowedViolations>0</maxAllowedViolations>
+					<violationIgnore>NONE</violationIgnore>
+					<includeResources>false</includeResources>
+					<includeTestResources>false</includeTestResources>
+				</configuration>
+				<executions>
+					<execution>
+						<id>checkstyle-main</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<configLocation>${guardrails.config}/checkstyle/checkstyle.xml</configLocation>
+							<includeTestSourceDirectory>false</includeTestSourceDirectory>
+							<outputFile>${project.build.directory}/checkstyle-main.xml</outputFile>
+						</configuration>
+					</execution>
+					<execution>
+						<id>checkstyle-test</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<configLocation>${guardrails.config}/checkstyle/checkstyle-test.xml</configLocation>
+							<sourceDirectories>
+								<sourceDirectory>${project.build.testSourceDirectory}</sourceDirectory>
+								<sourceDirectory>${guardrails.config}/archunit</sourceDirectory>
+							</sourceDirectories>
+							<includeTestSourceDirectory>false</includeTestSourceDirectory>
+							<outputFile>${project.build.directory}/checkstyle-test.xml</outputFile>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Complexity, coupling, god classes, unused code, Law of Demeter; CPD duplication. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-pmd-plugin</artifactId>
+				<version>${maven-pmd-plugin.version}</version>
+				<dependencies>
+					<dependency>
+						<groupId>net.sourceforge.pmd</groupId>
+						<artifactId>pmd-core</artifactId>
+						<version>${pmd.version}</version>
+					</dependency>
+					<dependency>
+						<groupId>net.sourceforge.pmd</groupId>
+						<artifactId>pmd-java</artifactId>
+						<version>${pmd.version}</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+					<skip>false</skip>
+					<targetJdk>${java.version}</targetJdk>
+					<rulesets>
+						<ruleset>${guardrails.config}/pmd/pmd-ruleset.xml</ruleset>
+					</rulesets>
+					<includeTests>false</includeTests>
+					<linkXRef>false</linkXRef>
+					<minimumTokens>${cpd.minimum.tokens}</minimumTokens>
+					<failOnViolation>true</failOnViolation>
+					<failurePriority>5</failurePriority>
+					<maxAllowedViolations>0</maxAllowedViolations>
+					<printFailingErrors>true</printFailingErrors>
+				</configuration>
+				<executions>
+					<execution>
+						<id>pmd-check</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+							<goal>cpd-check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Bug patterns and FindSecBugs security checks. -->
+			<plugin>
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>${spotbugs-maven-plugin.version}</version>
+				<dependencies>
+					<dependency>
+						<groupId>com.github.spotbugs</groupId>
+						<artifactId>spotbugs</artifactId>
+						<version>${spotbugs.version}</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+					<skip>false</skip>
+					<effort>Max</effort>
+					<threshold>Low</threshold>
+					<failThreshold>Low</failThreshold>
+					<failOnError>true</failOnError>
+					<maxAllowedViolations>0</maxAllowedViolations>
+					<includeTests>false</includeTests>
+					<excludeFilterFile>${guardrails.config}/spotbugs/spotbugs-exclude.xml</excludeFilterFile>
+					<plugins>
+						<plugin>
+							<groupId>com.h3xstream.findsecbugs</groupId>
+							<artifactId>findsecbugs-plugin</artifactId>
+							<version>${findsecbugs.version}</version>
+						</plugin>
+					</plugins>
+				</configuration>
+				<executions>
+					<execution>
+						<id>spotbugs-check</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Fails on unused declared and used undeclared dependencies. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>analyze-dependencies</id>
+						<goals>
+							<goal>analyze-only</goal>
+						</goals>
+						<configuration>
+							<skip>false</skip>
+							<failOnWarning>true</failOnWarning>
+							<ignoreNonCompile>false</ignoreNonCompile>
+							<ignoreUnusedRuntime>true</ignoreUnusedRuntime>
+							<ignoredUnusedDeclaredDependencies>
+								<!-- Starters carry no classes; they exist to bring the runtime. -->
+								<ignoredUnusedDeclaredDependency>org.springframework.boot:spring-boot-starter-*</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springdoc:springdoc-openapi-starter-webmvc-ui</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.testcontainers:testcontainers-junit-jupiter</ignoredUnusedDeclaredDependency>
+								<!-- Pre-declared platform artifacts (see dependencies). -->
+								<ignoredUnusedDeclaredDependency>org.springframework.boot:spring-boot</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework.boot:spring-boot-autoconfigure</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework:spring-core</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework:spring-context</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework:spring-beans</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework:spring-web</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework:spring-webmvc</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework:spring-tx</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework.data:spring-data-jpa</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework.data:spring-data-commons</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>jakarta.persistence:jakarta.persistence-api</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework.security:spring-security-core</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework.security:spring-security-web</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework.security:spring-security-config</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework.modulith:spring-modulith-api</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.jspecify:jspecify</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.slf4j:slf4j-api</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>tools.jackson.core:jackson-databind</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.junit.jupiter:junit-jupiter-api</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.assertj:assertj-core</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.mockito:mockito-core</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework:spring-test</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework.boot:spring-boot-test</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework.boot:spring-boot-webmvc-test</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework.boot:spring-boot-data-jpa-test</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework.security:spring-security-test</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.testcontainers:testcontainers</ignoredUnusedDeclaredDependency>
+								<ignoredUnusedDeclaredDependency>org.springframework.modulith:spring-modulith-test</ignoredUnusedDeclaredDependency>
+							</ignoredUnusedDeclaredDependencies>
+							<!-- Pre-declared compile platform artifacts may be used by tests only until a slice uses them. -->
+							<ignoredNonTestScopedDependencies>
+								<ignoredNonTestScopedDependency>org.springframework.boot:spring-boot</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>org.springframework.boot:spring-boot-autoconfigure</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>org.springframework:spring-core</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>org.springframework:spring-context</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>org.springframework:spring-beans</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>org.springframework:spring-web</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>org.springframework:spring-webmvc</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>org.springframework:spring-tx</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>org.springframework.data:spring-data-jpa</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>org.springframework.data:spring-data-commons</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>jakarta.persistence:jakarta.persistence-api</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>org.springframework.security:spring-security-core</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>org.springframework.security:spring-security-web</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>org.springframework.security:spring-security-config</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>org.springframework.modulith:spring-modulith-api</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>org.jspecify:jspecify</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>org.slf4j:slf4j-api</ignoredNonTestScopedDependency>
+								<ignoredNonTestScopedDependency>tools.jackson.core:jackson-databind</ignoredNonTestScopedDependency>
+							</ignoredNonTestScopedDependencies>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Auto-fix only, not a gate: ./mvnw rewrite:run (then ./mvnw spotless:apply). -->
+			<plugin>
+				<groupId>org.openrewrite.maven</groupId>
+				<artifactId>rewrite-maven-plugin</artifactId>
+				<version>${rewrite-maven-plugin.version}</version>
+				<configuration>
+					<configLocation>${guardrails.config}/rewrite/rewrite.yml</configLocation>
+					<activeRecipes>
+						<recipe>academy.devdojo.Guardrails</recipe>
+					</activeRecipes>
+					<exportDatatables>false</exportDatatables>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.openrewrite.recipe</groupId>
+						<artifactId>rewrite-static-analysis</artifactId>
+						<version>${rewrite-static-analysis.version}</version>
+					</dependency>
+					<dependency>
+						<groupId>org.openrewrite.recipe</groupId>
+						<artifactId>rewrite-spring</artifactId>
+						<version>${rewrite-spring.version}</version>
+					</dependency>
+					<dependency>
+						<groupId>org.openrewrite.recipe</groupId>
+						<artifactId>rewrite-migrate-java</artifactId>
+						<version>${rewrite-migrate-java.version}</version>
+					</dependency>
+					<dependency>
+						<groupId>org.openrewrite.recipe</groupId>
+						<artifactId>rewrite-testing-frameworks</artifactId>
+						<version>${rewrite-testing-frameworks.version}</version>
+					</dependency>
+				</dependencies>
+			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!-- Mutation testing (slow): ./mvnw verify -Pquality. Report: target/pit-reports/index.html -->
+		<profile>
+			<id>quality</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.pitest</groupId>
+						<artifactId>pitest-maven</artifactId>
+						<version>${pitest-maven.version}</version>
+						<dependencies>
+							<dependency>
+								<groupId>org.pitest</groupId>
+								<artifactId>pitest-junit5-plugin</artifactId>
+								<version>${pitest-junit5-plugin.version}</version>
+							</dependency>
+						</dependencies>
+						<configuration>
+							<skip>false</skip>
+							<targetClasses>
+								<param>academy.devdojo.*</param>
+							</targetClasses>
+							<targetTests>
+								<param>academy.devdojo.*</param>
+							</targetTests>
+							<excludedClasses>
+								<param>academy.devdojo.DevdojoWayApplication</param>
+							</excludedClasses>
+							<mutationThreshold>${mutation.threshold}</mutationThreshold>
+							<!-- No production code yet: an empty project must not fail. -->
+							<failWhenNoMutations>false</failWhenNoMutations>
+							<skipFailingTests>false</skipFailingTests>
+							<timestampedReports>false</timestampedReports>
+							<threads>4</threads>
+							<outputFormats>
+								<format>HTML</format>
+								<format>XML</format>
+							</outputFormats>
+						</configuration>
+						<executions>
+							<execution>
+								<id>pit-mutation-coverage</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>mutationCoverage</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>

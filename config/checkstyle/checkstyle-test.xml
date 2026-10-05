@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN" "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<!--
+  Rules for src/test/java and config/archunit: suppression bans and naming only.
+  No suppression filters (SuppressionFilter, SuppressWarningsHolder, SuppressionCommentFilter, ...) may be added.
+-->
+<module name="Checker">
+    <property name="severity" value="error"/>
+    <property name="charset" value="UTF-8"/>
+    <property name="fileExtensions" value="java"/>
+
+    <!-- Suppressions are forbidden: fix the violation instead. -->
+    <module name="RegexpSingleline">
+        <property name="id" value="noSuppressWarnings"/>
+        <property name="format" value="@\s*(java\.lang\.)?SuppressWarnings\b"/>
+        <property name="message" value="@SuppressWarnings is forbidden. Fix the compiler/Error Prone/NullAway/PMD warning instead of suppressing it (docs/guardrails.md)."/>
+    </module>
+    <module name="RegexpSingleline">
+        <property name="id" value="noSuppressFBWarnings"/>
+        <property name="format" value="@\s*([\w.]+\.)?SuppressFBWarnings\b"/>
+        <property name="message" value="@SuppressFBWarnings is forbidden. Fix the SpotBugs finding instead of suppressing it (docs/guardrails.md)."/>
+    </module>
+    <module name="RegexpSingleline">
+        <property name="id" value="noSuppressionComments"/>
+        <property name="format" value="(NOPMD|NOSONAR|CHECKSTYLE\s*[:.]?\s*(OFF|ON|SUPPRESS))"/>
+        <property name="ignoreCase" value="true"/>
+        <property name="message" value="Suppression comments (NOPMD, NOSONAR, CHECKSTYLE:OFF) are forbidden. Fix the reported violation instead (docs/guardrails.md)."/>
+    </module>
+
+    <module name="RegexpSingleline">
+        <property name="id" value="noDisabledTests"/>
+        <property name="format" value="@\s*(org\.junit\.jupiter\.api\.(condition\.)?)?Disabled\w*\b"/>
+        <property name="message" value="@Disabled* is forbidden: it hides failing tests. Make the test pass or delete it (docs/guardrails.md)."/>
+    </module>
+
+    <module name="TreeWalker">
+        <!-- Naming -->
+        <module name="PackageName">
+            <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
+        </module>
+        <module name="TypeName"/>
+        <module name="MethodName"/>
+        <module name="ConstantName"/>
+        <module name="StaticVariableName"/>
+        <module name="MemberName"/>
+        <module name="LocalVariableName"/>
+        <module name="LocalFinalVariableName"/>
+        <module name="ParameterName"/>
+        <module name="LambdaParameterName"/>
+        <module name="CatchParameterName"/>
+        <module name="PatternVariableName"/>
+        <module name="RecordComponentName"/>
+        <module name="ClassTypeParameterName"/>
+        <module name="MethodTypeParameterName"/>
+        <module name="InterfaceTypeParameterName"/>
+        <module name="RecordTypeParameterName"/>
+        <module name="AbbreviationAsWordInName">
+            <property name="allowedAbbreviationLength" value="1"/>
+        </module>
+    </module>
+</module>
